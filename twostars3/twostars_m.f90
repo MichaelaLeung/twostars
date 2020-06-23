@@ -2089,7 +2089,7 @@ np = sqrt(G * mass(1) / ap**3)
 E = (5e0/4e0) * (semia(2) / semia(1)) * (eb / (1e0-(eb**2)))! forced eccentricity 
 g = (3e0/4e0) * (mass(2) / mass(1)) * (semia(2) / semia(1)) **3 * np / ((1e0-eb **2)**(3e0/2e0)) ! secular frequency 
 
-wp = atan2((eta * atan2(g*t * phi)), (eta * cos(g*t + phi) + E )  
+wp = atan2((eta * sin(g*t * phi), (eta * cos(g*t + phi) + E))  
 ep2 = eta ** 2 + E **2 + 2e0 * eta * E * cos( G * t+ phi) 
 
 return
