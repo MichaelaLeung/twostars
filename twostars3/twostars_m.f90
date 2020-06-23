@@ -485,8 +485,8 @@ subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,
  !---------------------------------------------------------------------
  !dynamical evolution of the planet and the binary
  !---------------------------------------------------------------------
- call pconst(semia(1),semia(2),e1,man(1)*deg2rad,man(2)*deg2rad,mass(1),mass(2),mass(3),c,cs)
- call pdist(semia(1),semia(2),e1,mass(1),mass(2),mass(3),c,cs,t,.true.,0._dp,r0,r1,r2,e2,w1,w2)
+ call pconst(semia(1),semia(2),e1,man(1)*deg2rad,man(2)*deg2rad,mass(1),mass(2),mass(3),c,cs) ! constants for pdist
+ call pdist(semia(1),semia(2),e1,mass(1),mass(2),mass(3),c,cs,t,.true.,0._dp,r0,r1,r2,e2,w1,w2)!planet distance to star / time 
 
  !get the 3D planetary spin vector in Cartesian coordinates from obliquity, angle of precession and rotation period
  spinrad(1:2)=spin(1:2)*deg2rad !obliquity and angle of precession [deg] -> [rad]
@@ -2052,7 +2052,7 @@ return
 end subroutine
  
 !*******************************************************************************************
-subroutine ecc_plan(E, eta,phi,g)
+subroutine ecc_plan(E, eta,phi,g,t, ep2, wp)
 !----------------------------------------------------------------------------------------------
 ! this subroutine calculates longitudinal pericenter and planetary eccentricity 
 ! for a given forced eccentricity and secular frequency 
@@ -2086,11 +2086,11 @@ real(kind=dp), np, E,g
 
 np = sqrt(G * mass(1) / ap**3)
 
-E = (5/4) * (semia(2) / semia(1)) * (eb / (1-(eb**2)))! forced eccentricity 
-g = (3/4) * (mass(2) / mass(1)) * (semia(2) / semia(1)) **3 * np / ((1-eb **2)**(3/2)) ! secular frequency 
+E = (5e0/4e0) * (semia(2) / semia(1)) * (eb / (1e0-(eb**2)))! forced eccentricity 
+g = (3e0/4e0) * (mass(2) / mass(1)) * (semia(2) / semia(1)) **3 * np / ((1e0-eb **2)**(3e0/2e0)) ! secular frequency 
 
-wp = arctan((eta * arctan(g*t * phi)) / (eta * cos(g*t + phi) + E )  
-ep2 = eta ** 2 + E **2 + 2 * eta * E * cos( G * t+ phi) 
+wp = atan2((eta * atan2(g*t * phi)), (eta * cos(g*t + phi) + E )  
+ep2 = eta ** 2 + E **2 + 2e0 * eta * E * cos( G * t+ phi) 
 
 return
 end subroutine
