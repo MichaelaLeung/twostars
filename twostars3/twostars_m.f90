@@ -1,4 +1,5 @@
-module twostars_m
+module twostars_m  
+
 !#############################################################################################################################################
 !Routines to simulate the insolation and orbital evolution of a coplanar circumbinary planet. 
 !
@@ -6,7 +7,7 @@ module twostars_m
 !	
 ! modified 20150304
 !
-! last modified by Anna Zuckerman 20190814
+! last modified by Michaela Leung 20200618
 !
 ! modification history
 ! update of secular constant K3 to include mutual perturbation and Post Newtonian Correction
@@ -62,13 +63,12 @@ public::checkconf !check whether the binary planet configuration is suitable for
 !	       !INSOLATION SUBROUTINES
 !--------------------------------------------------------------------------------------------------------------	
 
-
 public::insolation1  !Evolve the binary + planet and determine the top-of the atmosphere insolation a circumbinary (P-type) planet receives in specified wave-length bands
 
 public::insolation2  !Same as insolation 1 but with direct input of stellar effective temperatures and radii
 
-public::insolation3  !Same as insolation 2 but takes input stellar spectra instead of calculating blackbody spectra, and outputs time dependent weighed spectra, 
-                     !    net weighted spectrum reaching planet, and set of time dependent weight factors
+public::insolation3  !Same as insolation 2 but takes input_spectra1.csv and input_spectra2.csv instead of calculating blackbody spectra for stellar spectra, and outputs 
+
 
 !--------------------------------------------------------------------------------------------------------------	       
 !	       !DISTANCE, POSITION AND ECCENTRICITY EVOLUTION SUBROUTINES
@@ -90,6 +90,8 @@ public::e2av   !<e^2> of the outer orbit in a hierarchical triple system
 public::e2max  ! maximum eccentricity of the outer orbit in a hierarchical triple system
 	       !assumptions: inner orbit = const (only valid for planetary masses!), system coplanar
 
+
+public::hw99p
 
  contains
 
@@ -288,7 +290,7 @@ subroutine insolation1(mass,met,semia,e1,man,spin,t,nbands,bands,bndflux,decl,ph
  return
 end subroutine
 
-!********************************************************************************************************************************************
+!*****************************************************************************************************************************************
 subroutine insolation2(mass,teff,rs,semia,e1,man,spin,t,nbands,bands,bndflux,decl,phi) 
 !-----------------------------------------------------------------------------------------------------------------------------------------
 ! Determine the top-of the atmosphere insolation a circumbinary (P-type) planet receives in 
@@ -404,8 +406,9 @@ d2(2)=dot_product(dr2,dr2)
  return
 end subroutine
 
+
 !********************************************************************************************************************************************
-subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,decl,phi,d2,dr1,dr2,weights) !ADZ CHANGE 20190804
+subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,decl,phi,d2,dr1,dr2,weights,rad_ref,lum) !ADZ CHANGE 20190804
 !-----------------------------------------------------------------------------------------------------------------------------------------
 ! Determine the top-of the atmosphere insolation a circumbinary (P-type) planet receives in 
 ! specified wave-length bands
@@ -455,7 +458,7 @@ subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,
  !input
  integer,intent(in)::nbands
  real(kind=dp),intent(in)::e1,t
- real(kind=dp),dimension(1:2),intent(in)::rs,semia,man        !ADZ 20190815 REMOVE teff
+ real(kind=dp),dimension(1:2),intent(in)::rs,semia,man,rad_ref,lum        !ADZ 20190815 REMOVE teff
  real(kind=dp),dimension(1:3),intent(in)::mass
  real(kind=dp),dimension(1:4),intent(in)::spin
  real(kind=dp),dimension(1:2,1:nbands,1:2),intent(in)::bands  
@@ -472,10 +475,13 @@ subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,
  real(kind=dp),dimension(1:2)::r0,r1,r2 	!stellar and planetary positions at time t [au]
  real(kind=dp)::cs(1:6),c(1:14) 		!dynamical constants
  real(kind=dp)::e2,w1,w2        		!eccentricity of the outer orbit,argument of pericenter of the inner and outer orbit [rad]
- real(kind=dp)::koos(1:2,1:3),koop(1:3)   	!vectors for transit factor determination
+ real(kind=dp)::koos(1:2,1:3),koop(1:3),sca_rad(1:2)   	!vectors for transit factor determination
  real(kind=dp),dimension(1:4)::spinrad 		!initial spin vector with angles in [rad] 
  real(kind=dp),dimension(1:2)::tf,df 		!transit and distance insolation diminishing factors for each star
-
+ 
+!ADZ get rid of this write
+!write(*,*) 'teff: ', teff
+!write(*,*), rad_ref
  !---------------------------------------------------------------------
  !dynamical evolution of the planet and the binary
  !---------------------------------------------------------------------
@@ -493,7 +499,7 @@ subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,
  !---------------------------------------------------------------------
  !insolation
  !---------------------------------------------------------------------
- !ADZ CHANGE 20190804 -- remove calls to intplanckwn
+ !ADZ CHANGE 7/29/19 -- remove calls to intplanckwn
 
  !calculate transit factor (whether one star is hidden behind the other)
  koos(:,3)=0.d0
@@ -510,8 +516,11 @@ subroutine insolation3(spectra,mass,rs,semia,e1,man,spin,t,nbands,bands,bndflux,
  !diminish flux due to transit and distance 
  do i=1,2
   df(i)=pi*(rs(i)*rsunau)**2/d2(i)        !distance diminishing factor
-  bndflux(i,:)=spectra(i,:)*tf(i)*df(i)   !diminish flux by transit and distance factors  !ADZ CHANGE 20190804
-  weights(i)= tf(i)*df(i)                 !record the scaling factor for each star
+!  write(*,*), lum(i), rad_ref(i), (rad_ref(i))/(rs(i))**2*lum(i) 
+!  call abort 
+  sca_rad(i) = (rad_ref(i))/(rs(i))**2*lum(i) 
+  bndflux(i,:)=spectra(i,:)*tf(i)*df(i)*sca_rad(i)   !diminish flux by transit and distance factors  !ADZ CHANGE 7/30/19 and 8/4/19
+  weights(i)= tf(i)*df(i)*sca_rad(i)                 !record the scaling factor for each star
  end do
  
  return
@@ -885,6 +894,9 @@ else
 end if
  
 call oe2xy2(a2,e2,c(8),c(13),w2,t,r2)	!get (binary) barycentric vector of the planet 
+
+!open(2, file = 'twostars_out_distances.csv')
+!write(2,*) r0,r1,r2                                 !ADZ CHANGE 7/23/19 REMOVE THIS and above line (note: this worked as write(*,*))
 
 return
 end subroutine 
@@ -1836,7 +1848,6 @@ subroutine transitfactor(nrad,koos,koop,rs,tf)
 !
 !
 ! written by Siegfried Eggl 20120502
-!
 ! modified by Anna Zuckerman 20190815
 !  > modified eclipse geometry to use apparent radius of stars from planet view, calculated by projecting actual stellar radii onto plane normal to 
 !    line of sight from planet to barycenter. Neccessary in the case of distance between stars not negligible compared to distance planet to stars 
@@ -1870,9 +1881,9 @@ subroutine transitfactor(nrad,koos,koop,rs,tf)
    real(kind=dp),dimension(1:3)::d,dpp,proj
    real(kind=dp),dimension(nrad)::RSm,RSm2,da
    real(kind=dp)::dproj,covarea,dmax,dproj2
-   !ADZ ADD  20190727 -- next 4 vars 
-   real(kind=dp),dimension(1:2)::theta     !angle subtended by radius (aka 'angular radius') of each star (1,2) as seen from planet 
-   real(kind=dp),dimension(1:2)::appRad    !apparent radius of each star calculated by projecting each star's angular size onto plane normal to planet line of sight to binary barycenter
+   !ADZ ADD  7/27/19 -- next 4 vars 
+   real(kind=dp),dimension(1:2)::theta     !angle subtended by radius ('angular radius') of each star (1,2) as seen from planet
+   real(kind=dp),dimension(1:2)::appRad    !apparent radius of stars calculated by projecting each star's angular size (from planet point of view) onto the distance of the eclipsed star
    real(kind=dp):: Dplan                   !distance barycenter to planet, star 1, star 2 [au]
    real(kind=dp),dimension(1:2):: Dstar    !distance to stars 1 and 2 from barycenter [au]
    real(kind=dp),dimension(1:2)::alpha     !angle between vector from barycenter to planet and vector from planet to star 1
@@ -1895,24 +1906,24 @@ subroutine transitfactor(nrad,koos,koop,rs,tf)
     dpp(:)=kooS(2,:)-kooP(:)
    end if
      
-!calculate d vector's projection onto plane orthogonal to planet's line of sight going through the barycenter  !ADZ CHANGE 20190801  -- vector now thourgh barycenter, not farthest star
-    call bxaxb(d,-kooP,proj) 
+!calculate d vector's projection onto plane orthogonal to planet's line of sight going through the barycenter  ! ADZ CHANGE 8/1/19 (vector now thourgh barycenter, not farthest star)
+    call bxaxb(d,-kooP,proj) !ADZ CHANGE 8/1/19
 
-!length of projected vector in [m] !ADZ CHANGE 20190801--  km to m (fix typo in comment, no change to calculation)
+!length of projected vector in [m] !ADZ CHANGE km to m (fix typo in comment, no change to calculation)
     dproj=Sqrt(Dot_Product(proj,proj))*au
 
-!ADZ CHANGE 20190727
+!ADZ CHANGE 7/27/19
 !Calculate apparent stellar radii
-Dplan= Sqrt(Dot_Product(KooP,KooP))                                     !distance from planet to barycenter [au]
-Dstar(1)= Sqrt(Dot_Product(KooS(1,:),KooS(1,:)))                        !distance from star1 to barycenter [au]   
-Dstar(2)= Sqrt(Dot_Product(KooS(2,:),KooS(2,:)))                        !distance from star2 to barycenter [au]
+Dplan= Sqrt(Dot_Product(KooP,KooP))                                     !distance from planet to barycenter in au
+Dstar(1)= Sqrt(Dot_Product(KooS(1,:),KooS(1,:)))                        !distance from star1 to barycenter in au   
+Dstar(2)= Sqrt(Dot_Product(KooS(2,:),KooS(2,:)))                        !distance from star2 to barycenter in au
 alpha(1)= acos((Dstar(1)**2-Dplan**2-da(1)**2)/(-2*Dplan*da(1)))        !define alpha1 = angle between vector from barycenter to planet and vector from planet to star 1 
 alpha(2)= acos((Dstar(2)**2-Dplan**2-da(2)**2)/(-2*Dplan*da(2)))        !define alpha2 = angle between vector from barycenter to planet and vector from planet to star 2
 theta(:)= asin((RS(:)*rsunau)/da(:))                                    !define theta = angle that each star's radius subtends as seen from planet  
 appRad(:) = (Dplan*sin(theta(:)))/(cos(alpha(:))*cos(alpha(:)+theta(:)))!apparent radius of stars from planet view [au]
 
-!radius of stars in [m] !ADZ CHANGE 20190801 -- km to m
-RSm(:)=appRad(:)*au  !ADZ CHANGE 20190731 -- changed rsun to au. appRad now in [AU] not in [Rsun])
+!radius of stars in [m] !ADZ CHANGE (km to m)
+RSm(:)=appRad(:)*au  !ADZ CHANGE 7/31/19 -- changed rsun to au  appRad now in [AU] not in [Rsun])
 
 !transit
 if (sum(RSm(:)).gt.dproj) then
@@ -2040,6 +2051,51 @@ teff=(lum/(rs*rs))**0.25d0
 return
 end subroutine
  
+!*******************************************************************************************
+subroutine ecc_plan(E, eta,phi,g)
+!----------------------------------------------------------------------------------------------
+! this subroutine calculates longitudinal pericenter and planetary eccentricity 
+! for a given forced eccentricity and secular frequency 
+!!
+! written by Michaela Leung 20200618
+!
+! dependencies: none
+!----------------------------------------------------------------------------------------------------------
+! Input:
+!
+! real:: 
+! semia         ...semi major axes. star , planet 
+! eb            ... eccentricity of the binary 
+! eta		...free eccentricity 
+! phi		...[radians] phase angle 
+! t             ...time
+!----------------------------------------------------------------------------------------------------------
+! Output:
+!
+! real::
+! ep2         	...planetary eccentricity 
+! wp		...longitudinal pericenter
+!----------------------------------------------------------------------------------------------
+implicit none
+!input
+real(kind=dp),intent(in)::E,eta,phi,g,t !forced eccentricity, free eccentricity, phase angle, secular frequency, time
+!output
+real(kind=dp),intent(out)::ep2, wp !planetary eccentricity, longitudinal pericenter
+!local
+real(kind=dp), np, E,g
+
+np = sqrt(G * mass(1) / ap**3)
+
+E = (5/4) * (semia(2) / semia(1)) * (eb / (1-(eb**2)))! forced eccentricity 
+g = (3/4) * (mass(2) / mass(1)) * (semia(2) / semia(1)) **3 * np / ((1-eb **2)**(3/2)) ! secular frequency 
+
+wp = arctan((eta * arctan(g*t * phi)) / (eta * cos(g*t + phi) + E )  
+ep2 = eta ** 2 + E **2 + 2 * eta * E * cos( G * t+ phi) 
+
+return
+end subroutine
+ 
 
 !#############################################################################################
+
 end module
