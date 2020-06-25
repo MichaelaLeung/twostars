@@ -2052,7 +2052,7 @@ return
 end subroutine
  
 !*******************************************************************************************
-subroutine ecc_plan(E, eta,phi,g,t, ep2, wp)
+subroutine ecc_plan(semia, mass, eta,phi,t, ep2, wp)
 !----------------------------------------------------------------------------------------------
 ! this subroutine calculates longitudinal pericenter and planetary eccentricity 
 ! for a given forced eccentricity and secular frequency 
@@ -2065,6 +2065,7 @@ subroutine ecc_plan(E, eta,phi,g,t, ep2, wp)
 !
 ! real:: 
 ! semia         ...semi major axes. star , planet 
+! mass 
 ! eb            ... eccentricity of the binary 
 ! eta		...free eccentricity 
 ! phi		...[radians] phase angle 
@@ -2077,25 +2078,33 @@ subroutine ecc_plan(E, eta,phi,g,t, ep2, wp)
 ! wp		...longitudinal pericenter
 !----------------------------------------------------------------------------------------------
 implicit none
+!added for testing purposes only
+integer, parameter :: dp = selected_real_kind(15, 307)
+real(kind=dp),parameter::k=0.01720209895_dp ![au^(3/2) Msun^(-1/2) D^(-1)] Gaussian gravitational constant
+
+
 !input
-real(kind=dp),intent(in)::E,eta,phi,g,t !forced eccentricity, free eccentricity, phase angle, secular frequency, time
+real(kind=dp),intent(in)::eta,phi,t !free eccentricity, phase angle, time
+
+real(kind=dp)::eb !binary eccentricity
+real(kind=dp),dimension(2),intent(in)::mass, semia
+
 !output
 real(kind=dp),intent(out)::ep2, wp !planetary eccentricity, longitudinal pericenter
 !local
-real(kind=dp), np, E,g
+real(kind=dp):: np,nb,mu, E,g
 
-np = sqrt(G * mass(1) / ap**3)
+np = sqrt(k**2 * (mass(1)+mass(2)+0.05) / semia(2)**3)
+nb = sqrt(k**2 * (mass(1)+mass(2))/semia(1)**3)
+mu = mass(2)/ (mass(1) + mass(2))
+E = (5.d0/4.d0) * (semia(1) / semia(2)) * (1.d0-2.d0*mu)* (4.d0*eb+ 3* eb**3)/(4.d0+6.d0*eb**2)! forced eccentricity 
 
-E = (5e0/4e0) * (semia(2) / semia(1)) * (eb / (1e0-(eb**2)))! forced eccentricity 
-g = (3e0/4e0) * (mass(2) / mass(1)) * (semia(2) / semia(1)) **3 * np / ((1e0-eb **2)**(3e0/2e0)) ! secular frequency 
+g = (3.d0/4.d0) * (nb**2/np) * (semia(2) / semia(1))**5 * mu * (1.d0-mu) * (1.d0+ 3.d0*eb**2/2) ! secular frequency 
 
-wp = atan2((eta * sin(g*t * phi), (eta * cos(g*t + phi) + E))  
-ep2 = eta ** 2 + E **2 + 2e0 * eta * E * cos( G * t+ phi) 
+!write(*,*),np,E,g
+
+wp = atan2(eta * sin(g*t + phi), (eta * cos(g*t + phi) + E)) 
+ep2 = E * sqrt(2-2*cos(g*t))
 
 return
-end subroutine
- 
-
-!#############################################################################################
-
-end module
+end subroutine 
