@@ -2099,7 +2099,7 @@ nb = sqrt(k**2 * (mass(1)+mass(2))/semia(1)**3)
 mu = mass(2)/ (mass(1) + mass(2))
 E = (5.d0/4.d0) * (semia(1) / semia(2)) * (1.d0-2.d0*mu)* (4.d0*eb+ 3* eb**3)/(4.d0+6.d0*eb**2)! forced eccentricity 
 
-g = (3.d0/4.d0) * (nb**2/np) * (semia(2) / semia(1))**5 * mu * (1.d0-mu) * (1.d0+ 3.d0*eb**2/2) ! secular frequency 
+g = (3.d0/4.d0) * (nb**2/np) * (semia(1) / semia(2))**5 * mu * (1.d0-mu) * (1.d0+ 3.d0*eb**2/2) ! secular frequency 
 
 !write(*,*),np,E,g
 
